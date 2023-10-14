@@ -1,35 +1,29 @@
 import icons from 'url:../../img/icons.svg'; // Parcel 2
-import { Fraction } from 'fractional';
-console.log(Fraction);
+import { Fraction } from 'fractional'; // This function is used to convert decimals to fractions
+import View from './View.js';
 
-class RecipeView {
+// the view is responsible for displaying data to the user. When the view directly calls functions from the controller, it blurs this separation of concerns.
+// This class is used to render recipe-related data to the DOM.
+
+class RecipeView extends View {
   /* 
     Note to self:
       - This will make it easier to change the parent element in the future if we need to. 
       - We can just change it here and it will be changed everywhere else in the code.
       - This makes it easier to render success or error messages to the DOM.
     */
-  #parentElement = document.querySelector('.recipe');
+  _parentElement = document.querySelector('.recipe');
+  _errorMessage = 'We could not find that recipe. Please try another one!';
+  _message = '';
 
-  #data;
-
-  render(data) {
-    this.#data = data;
-    const markup = this.#generateMarkup();
-
-    // We are clearing the parent element before we insert the new markup so that we don't have the new markup and the old markup in the DOM at the same time. This will cause a bug. We only want to have one recipe in the DOM at a time.
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML('afterbegin', markup);
-  }
-
-  #generateMarkup() {
+  _generateMarkup() {
     return `
       <figure class="recipe__fig">
-      <img src="${this.#data.image}" alt="${
-      this.#data.title
+      <img src="${this._data.image}" alt="${
+      this._data.title
     }" class="recipe__img" />
       <h1 class="recipe__title">
-        <span>${this.#data.title}</span>
+        <span>${this._data.title}</span>
       </h1>
       </figure>
 
@@ -39,7 +33,7 @@ class RecipeView {
             <use href="${icons}#icon-clock"></use>
           </svg>
           <span class="recipe__info-data recipe__info-data--minutes">${
-            this.#data.cookingTime
+            this._data.cookingTime
           }</span>
           <span class="recipe__info-text">minutes</span>
         </div>
@@ -48,17 +42,21 @@ class RecipeView {
             <use href="${icons}#icon-users"></use>
           </svg>
           <span class="recipe__info-data recipe__info-data--people">${
-            this.#data.servings
+            this._data.servings
           }</span>
           <span class="recipe__info-text">servings</span>
 
           <div class="recipe__info-buttons">
-            <button class="btn--tiny btn--increase-servings">
+            <button class="btn--tiny btn--update-servings" data-update-to="${
+              this._data.servings - 1
+            }">
               <svg>
                 <use href="${icons}#icon-minus-circle"></use>
               </svg>
             </button>
-            <button class="btn--tiny btn--increase-servings">
+            <button class="btn--tiny btn--update-servings" data-update-to="${
+              this._data.servings + 1
+            }">
               <svg>
                 <use href="${icons}#icon-plus-circle"></use>
               </svg>
@@ -67,9 +65,7 @@ class RecipeView {
         </div>
 
         <div class="recipe__user-generated">
-          <svg>
-            <use href="${icons}#icon-user"></use>
-          </svg>
+          
         </div>
         <button class="btn--round">
           <svg class="">
@@ -82,7 +78,7 @@ class RecipeView {
         <h2 class="heading--2">Recipe ingredients</h2>
         <ul class="recipe__ingredient-list">
 
-          ${this.#data.ingredients.map(this.#generateMarkupIngredient).join('')}
+          ${this._data.ingredients.map(this._generateMarkupIngredient).join('')}
 
         </ul>
       </div>
@@ -92,13 +88,13 @@ class RecipeView {
         <p class="recipe__directions-text">
           This recipe was carefully designed and tested by
           <span class="recipe__publisher">${
-            this.#data.publisher
+            this._data.publisher
           }. Please check out
           directions at their website.</span>
         </p>
         <a
           class="btn--small recipe__btn"
-          href="${this.#data.sourceUrl}"
+          href="${this._data.sourceUrl}"
           target="_blank"
         >
           <span>Directions</span>
@@ -110,7 +106,7 @@ class RecipeView {
       `;
   }
 
-  #generateMarkupIngredient(ing) {
+  _generateMarkupIngredient(ing) {
     return `
       <li class="recipe__ingredient">
       <svg class="recipe__icon">
@@ -127,20 +123,42 @@ class RecipeView {
       `;
   }
 
-  renderSpinner() {
-    const markup = `
-      <div class="spinner">
-        <svg>
-          <use href="${icons}#icon-loader"></use>
-        </svg>
-      </div>;`;
-
-    this.#clear();
-    this.#parentElement.insertAdjacentHTML('afterbegin', markup);
+  // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
+  // This is not a private method because we need to call it from the controller.js file.
+  addHandlerRender(handler) {
+    // We are using the hashchange event to listen for changes in the url hash. This is so that we can render the recipe when the user clicks on a recipe.
+    // We are using the load event to render the recipe when the page loads.
+    // REMEMBER: The 'addEventListener' method takes in two arguments. The first argument is the event type and the second argument is the event handler function.
+    ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
   }
 
-  #clear() {
-    this.#parentElement.innerHTML = '';
+  // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
+  // This is not a private method because we need to call it from the controller.js file.
+  addHandlerUpdateServings(handler) {
+    // We are using event delegation to add an event listener to the servings buttons
+    this._parentElement.addEventListener('click', function (e) {
+      // We are using the closest method to select the closest element with the class 'btn--update-servings' to the element that was clicked on
+      const btn = e.target.closest('.btn--update-servings');
+      console.log(btn);
+
+      // Guard clause to make sure that the btn variable is not null
+      if (!btn) return;
+
+      // We are storing the value of the data attribute 'update-to' in the newServings variable. We are using the + sign to convert the string value to a number
+      // const newServings = Number(btn.dataset.updateTo);
+      // const newServings = +btn.dataset.updateTo;
+
+      // Guard clause to make sure that the newServings variable is greater than 0
+      // if (newServings > 0) {
+      //   handler(newServings);
+      // }
+
+      const { updateTo } = btn.dataset;
+
+      if (+updateTo > 0) {
+        handler(+updateTo);
+      }
+    });
   }
 }
 

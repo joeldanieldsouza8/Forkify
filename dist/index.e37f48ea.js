@@ -576,50 +576,108 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 },{}],"aenu9":[function(require,module,exports) {
 /// Imports
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-var _webImmediateJs = require("core-js/modules/web.immediate.js"); // window.addEventListener('hashchange', controlRecipes);
- // window.addEventListener('load', controlRecipes);
+var _webImmediateJs = require("core-js/modules/web.immediate.js");
 var _runtime = require("regenerator-runtime/runtime"); // Polyfilling async/await
 var _modelJs = require("./model.js");
 var _recipeViewJs = require("./views/recipeView.js"); // We are importing the class from the recipeView.js file
 var _recipeViewJsDefault = parcelHelpers.interopDefault(_recipeViewJs);
-///////////////////////////////////////////////////////////////////////
-const recipeContainer = document.querySelector(".recipe");
-function timeOut(s) {
-    return new Promise(function(_, reject) {
-        setTimeout(function() {
-            reject(new Error(`Request took too long! Timeout after ${s} second`));
-        }, s * 1000);
-    });
-}
-// https://forkify-api.herokuapp.com/v2
-///////////////////////////////////////
-async function controlRecipes() {
+var _searchViewJs = require("./views/searchView.js");
+var _searchViewJsDefault = parcelHelpers.interopDefault(_searchViewJs);
+var _resultsViewJs = require("./views/resultsView.js");
+var _resultsViewJsDefault = parcelHelpers.interopDefault(_resultsViewJs);
+var _paginationViewJs = require("./views/paginationView.js");
+var _paginationViewJsDefault = parcelHelpers.interopDefault(_paginationViewJs);
+/* 
+  - The controller is responsible for handling user input and business logic
+  - This file is the controller for the MVC architecture.  
+  - The controller imports the necessary modules and contains functions for controlling the flow of the application. 
+*/ // The if statement is used to make sure that the hot module replacement code only runs in development mode.  This is because we don't want to reload the page in production mode.
+// if (module.hot) {
+//   module.hot.accept();
+// }
+/* 
+  - 
+*/ async function controlRecipes() {
     try {
+        // Get the id from the url, which is the hash value. We are using the slice method to remove the '#' symbol from the hash value.
         const id = window.location.hash.slice(1);
         console.log(id);
-        // Guard clause
+        // Guard clause to make sure that there is an id
         if (!id) return;
+        // Render spinner
         (0, _recipeViewJsDefault.default).renderSpinner();
         // 1) Loading recipe
         // This is an async function as we are fetching data from the API so we need to await for the data to be fetched before we can use it
         // This method doesn't return anything so we don't need to store it in a variable.
         await _modelJs.loadRecipe(id);
-        // const { recipe } = model.state;
         // 2) Rendering recipe
         // We are calling the render function from the recipeView.js file
         (0, _recipeViewJsDefault.default).render(_modelJs.state.recipes[id]);
+    // Test
+    // controlServings();
+    } catch (err) {
+        // console.log(err);
+        (0, _recipeViewJsDefault.default).renderError(); // We don't need to pass in the error message 'err' as an argument, as we have already defined the default error message in the renderError method in the recipeView.js file
+    }
+}
+/* 
+  - This function will be called in the controller.js file when the user clicks on the search button or presses the enter key
+  - This function will be called in the controller.js file when the user clicks on the pagination buttons
+  - This function will be called in the controller.js file when the user clicks on the servings buttons
+  - This function will be called in the controller.js file when the page loads
+  - This function will be called in the controller.js file when the user clicks on a recipe
+  - This function will be called in the controller.js file when the user clicks on the bookmarks button
+*/ async function controlSearchResults() {
+    try {
+        // Render spinner
+        (0, _resultsViewJsDefault.default).renderSpinner();
+        // 1) Get search query
+        // We are calling the getQuery method from the searchView.js file
+        const query = (0, _searchViewJsDefault.default).getQuery();
+        console.log(query);
+        // Guard clause to make sure that there is a search query
+        if (!query) return;
+        // 2) Load search results
+        // We are calling the loadSearchResults function from the model.js file
+        await _modelJs.loadSearchResults(query);
+        // 3) Render search results
+        // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+        // resultsView.render(model.state.search.results); // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+        (0, _resultsViewJsDefault.default).render(_modelJs.getSearchResultsPage()); // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+        // 4) Render initial pagination buttons
+        (0, _paginationViewJsDefault.default).render(_modelJs.state.search);
     } catch (err) {
         console.log(err);
     }
 }
-controlRecipes();
-// This is the same as the code below
-[
-    "hashchange",
-    "load"
-].forEach((ev)=>window.addEventListener(ev, controlRecipes));
+const controlPagination = function(goToPage) {
+    // 1) Render NEW search results
+    // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+    // resultsView.render(model.state.search.results); // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+    (0, _resultsViewJsDefault.default).render(_modelJs.getSearchResultsPage(goToPage)); // We are calling the render function from the resultsView.js file and passing in the search results as an argument. This will display all the search results on the same page.
+    // 2) Render NEW pagination buttons
+    (0, _paginationViewJsDefault.default).render(_modelJs.state.search);
+};
+const controlServings = function(newServings) {
+    const id = window.location.hash.slice(1);
+    // Update the recipe servings (in state)
+    _modelJs.updateServings(newServings);
+    // Update the recipe view
+    (0, _recipeViewJsDefault.default).render(_modelJs.state.recipes[id]);
+};
+function init() {
+    // We are subscribing to the publisher.
+    // We are using the hashchange event to listen for changes in the url hash.
+    // This is so that we can render the recipe when the user clicks on a recipe.
+    // We are using the load event to render the recipe when the page loads.
+    (0, _recipeViewJsDefault.default).addHandlerRender(controlRecipes); // We are adding an event listener to the hashchange and load events in the recipeView.js file
+    (0, _recipeViewJsDefault.default).addHandlerUpdateServings(controlServings); // We are adding an event listener to the servings buttons in the recipeView.js file
+    (0, _searchViewJsDefault.default).addHandlerSearch(controlSearchResults); // We are adding an event listener to the search button in the searchView.js file
+    (0, _paginationViewJsDefault.default).addHandlerClick(controlPagination); // We are adding an event listener to the pagination buttons in the paginationView.js file
+}
+init();
 
-},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./views/recipeView.js":"l60JC"}],"49tUX":[function(require,module,exports) {
+},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","./views/recipeView.js":"l60JC","./views/searchView.js":"9OQAM","./views/resultsView.js":"cSbZE","./views/paginationView.js":"6z7bi","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"49tUX":[function(require,module,exports) {
 "use strict";
 // TODO: Remove this module from `core-js@4` since it's split to modules listed below
 require("52e9b3eefbbce1ed");
@@ -2452,18 +2510,49 @@ try {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "state", ()=>state);
-// This is an async function because it will fetch data from the Forkify API
-parcelHelpers.export(exports, "loadRecipe", ()=>loadRecipe);
+// console.log(state.recipes);
+/* 
+  - This is an async function because it will fetch data from the Forkify API
+  - This function will be called from the controller.js file when the user clicks on a recipe
+  - This function will be called from the controller.js file when the user clicks on the pagination buttons
+  - This function will be called from the controller.js file when the user clicks on the servings buttons
+  - The function will take in an id as an argument, which will be the recipe id
+  - The function will return a promise, which will be resolved with the recipe data
+*/ parcelHelpers.export(exports, "loadRecipe", ()=>loadRecipe);
+/* 
+  - This function will be called from the controller.js file when the user clicks on the search button or presses the enter key 
+  - This function will take in a search query as an argument, which will be the search query
+  - This function will return a promise, which will be resolved with the search results
+  - This function will be called from the controller.js file when the user clicks on the pagination buttons
+  - This function will be called from the controller.js file when the user clicks on the servings buttons
+*/ parcelHelpers.export(exports, "loadSearchResults", ()=>loadSearchResults);
+/* 
+  - This function will be called from the controller.js file when the user clicks on the pagination buttons
+  - This function doesn need to be async because the data is already stored in the state object and we are not fetching any data from the API 
+  - This function will take in a page number as an argument, which will be the page number
+  - This function will return a slice of the array of search results
+  - This function will be called from the controller.js file when the user clicks on the servings buttons
+*/ parcelHelpers.export(exports, "getSearchResultsPage", ()=>getSearchResultsPage);
+// This function will be called from the controller.js file when the user clicks on the servings buttons
+parcelHelpers.export(exports, "updateServings", ()=>updateServings);
+var _configJs = require("./config.js");
+var _helpers = require("./helpers");
 const state = {
-    recipes: {}
+    recipes: {},
+    search: {
+        query: "",
+        results: [],
+        resultsPerPage: (0, _configJs.RES_PER_PAGE),
+        page: 1
+    }
 };
-async function loadRecipe(id) {
+async function loadRecipe(recipeID) {
     try {
-        const res = await fetch(`https://forkify-api.herokuapp.com/api/v2/recipes/${id}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(`${data.message} (${res.status})`);
-        let { recipe } = data.data;
-        recipe = {
+        // This is an async function as we are fetching data from the API so we need to await for the data to be fetched before we can use it
+        const data = await (0, _helpers.getJSON)(`${(0, _configJs.API_URL)}${recipeID}`);
+        // We are storing the recipe data in the state object
+        const { recipe } = data.data;
+        state.recipes[recipeID] = {
             id: recipe.id,
             title: recipe.title,
             publisher: recipe.publisher,
@@ -2473,12 +2562,65 @@ async function loadRecipe(id) {
             cookingTime: recipe.cooking_time,
             ingredients: recipe.ingredients
         };
-        state.recipes[id] = recipe;
+    // console.log(state.recipes[recipeID]);
     } catch (err) {
         console.error(`${err} 💥💥💥`);
         throw err;
     }
 }
+async function loadSearchResults(searchQuery) {
+    try {
+        // We are storing the search query in the state object
+        state.search.query = searchQuery;
+        // This is an async function as we are fetching data from the API so we need to await for the data to be fetched before we can use it
+        const data = await (0, _helpers.getJSON)(`${(0, _configJs.API_URL)}?search=${searchQuery}`);
+        // We are storing the search results in the state object
+        state.search.results = data.data.recipes.map((recipe)=>{
+            return {
+                id: recipe.id,
+                title: recipe.title,
+                publisher: recipe.publisher,
+                image: recipe.image_url
+            };
+        });
+        console.log(state.search.results);
+    } catch (err) {
+        console.error(`${err} 💥💥💥`);
+        throw err;
+    }
+}
+function getSearchResultsPage(pageNumber = state.search.page) {
+    // We are storing the page number in the state object
+    state.search.page = pageNumber;
+    // We are storing the start index and the end index of the slice in the state object
+    const start = (pageNumber - 1) * state.search.resultsPerPage;
+    const end = pageNumber * state.search.resultsPerPage;
+    // We are returning a slice of the array of search results
+    return state.search.results.slice(start, end);
+}
+function updateServings(newServings) {
+    const id = window.location.hash.slice(1);
+    // Guard clause to make sure that there is a recipe
+    if (!state.recipes[id]) return;
+    state.recipes[id].ingredients.forEach((ing)=>{
+        // newQt = oldQt * newServings / oldServings // 2 * 8 / 4 = 4
+        ing.quantity = ing.quantity * newServings / state.recipes[id].servings;
+    });
+    // We are updating the servings in the state object
+    state.recipes[id].servings = newServings;
+}
+
+},{"./config.js":"k5Hzs","./helpers":"hGI1E","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"k5Hzs":[function(require,module,exports) {
+// In this file we will be putting all variables that should be constant and that we will be using in multiple files.  
+// This is so that we can easily change the values of these variables in one place and it will change the value in all the files that use it.
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "API_URL", ()=>API_URL);
+parcelHelpers.export(exports, "TIMEOUT_SEC", ()=>TIMEOUT_SEC);
+parcelHelpers.export(exports, "RES_PER_PAGE", ()=>RES_PER_PAGE);
+const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes/";
+const TIMEOUT_SEC = 10;
+const RES_PER_PAGE = 10;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports) {
 exports.interopDefault = function(a) {
@@ -2510,34 +2652,62 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"l60JC":[function(require,module,exports) {
+},{}],"hGI1E":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "getJSON", ()=>getJSON);
+var _configJs = require("./config.js");
+function timeOut(s) {
+    return new Promise(function(_, reject) {
+        setTimeout(function() {
+            reject(new Error(`Request took too long! Timeout after ${s} second`));
+        }, s * 1000);
+    });
+}
+const getJSON = async function(url) {
+    try {
+        // If the promise gets rejected, the catch block will run and the error will be thrown.
+        // This is because the fetch function will only reject the promise if there is a network error.
+        // If the response is not ok, the promise will still be resolved.
+        // So we need to throw an error if the response is not ok.
+        const res = await Promise.race([
+            fetch(url),
+            timeOut((0, _configJs.TIMEOUT_SEC))
+        ]);
+        const data = await res.json(); // This will return a promise
+        if (!res.ok) throw new Error(`${data.message} (${res.status})`);
+        return data;
+    } catch (err) {
+        // This will return a rejected promise
+        throw err;
+    }
+};
+
+},{"./config.js":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"l60JC":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _iconsSvg = require("url:../../img/icons.svg"); // Parcel 2
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
-var _fractional = require("fractional");
-console.log((0, _fractional.Fraction));
-class RecipeView {
+var _fractional = require("fractional"); // This function is used to convert decimals to fractions
+var _viewJs = require("./View.js");
+var _viewJsDefault = parcelHelpers.interopDefault(_viewJs);
+// the view is responsible for displaying data to the user. When the view directly calls functions from the controller, it blurs this separation of concerns.
+// This class is used to render recipe-related data to the DOM.
+class RecipeView extends (0, _viewJsDefault.default) {
     /* 
     Note to self:
       - This will make it easier to change the parent element in the future if we need to. 
       - We can just change it here and it will be changed everywhere else in the code.
       - This makes it easier to render success or error messages to the DOM.
-    */ #parentElement = document.querySelector(".recipe");
-    #data;
-    render(data) {
-        this.#data = data;
-        const markup = this.#generateMarkup();
-        // We are clearing the parent element before we insert the new markup so that we don't have the new markup and the old markup in the DOM at the same time. This will cause a bug. We only want to have one recipe in the DOM at a time.
-        this.#clear();
-        this.#parentElement.insertAdjacentHTML("afterbegin", markup);
-    }
-    #generateMarkup() {
+    */ _parentElement = document.querySelector(".recipe");
+    _errorMessage = "We could not find that recipe. Please try another one!";
+    _message = "";
+    _generateMarkup() {
         return `
       <figure class="recipe__fig">
-      <img src="${this.#data.image}" alt="${this.#data.title}" class="recipe__img" />
+      <img src="${this._data.image}" alt="${this._data.title}" class="recipe__img" />
       <h1 class="recipe__title">
-        <span>${this.#data.title}</span>
+        <span>${this._data.title}</span>
       </h1>
       </figure>
 
@@ -2546,23 +2716,23 @@ class RecipeView {
           <svg class="recipe__info-icon">
             <use href="${0, _iconsSvgDefault.default}#icon-clock"></use>
           </svg>
-          <span class="recipe__info-data recipe__info-data--minutes">${this.#data.cookingTime}</span>
+          <span class="recipe__info-data recipe__info-data--minutes">${this._data.cookingTime}</span>
           <span class="recipe__info-text">minutes</span>
         </div>
         <div class="recipe__info">
           <svg class="recipe__info-icon">
             <use href="${0, _iconsSvgDefault.default}#icon-users"></use>
           </svg>
-          <span class="recipe__info-data recipe__info-data--people">${this.#data.servings}</span>
+          <span class="recipe__info-data recipe__info-data--people">${this._data.servings}</span>
           <span class="recipe__info-text">servings</span>
 
           <div class="recipe__info-buttons">
-            <button class="btn--tiny btn--increase-servings">
+            <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings - 1}">
               <svg>
                 <use href="${0, _iconsSvgDefault.default}#icon-minus-circle"></use>
               </svg>
             </button>
-            <button class="btn--tiny btn--increase-servings">
+            <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings + 1}">
               <svg>
                 <use href="${0, _iconsSvgDefault.default}#icon-plus-circle"></use>
               </svg>
@@ -2571,9 +2741,7 @@ class RecipeView {
         </div>
 
         <div class="recipe__user-generated">
-          <svg>
-            <use href="${0, _iconsSvgDefault.default}#icon-user"></use>
-          </svg>
+          
         </div>
         <button class="btn--round">
           <svg class="">
@@ -2586,7 +2754,7 @@ class RecipeView {
         <h2 class="heading--2">Recipe ingredients</h2>
         <ul class="recipe__ingredient-list">
 
-          ${this.#data.ingredients.map(this.#generateMarkupIngredient).join("")}
+          ${this._data.ingredients.map(this._generateMarkupIngredient).join("")}
 
         </ul>
       </div>
@@ -2595,12 +2763,12 @@ class RecipeView {
         <h2 class="heading--2">How to cook it</h2>
         <p class="recipe__directions-text">
           This recipe was carefully designed and tested by
-          <span class="recipe__publisher">${this.#data.publisher}. Please check out
+          <span class="recipe__publisher">${this._data.publisher}. Please check out
           directions at their website.</span>
         </p>
         <a
           class="btn--small recipe__btn"
-          href="${this.#data.sourceUrl}"
+          href="${this._data.sourceUrl}"
           target="_blank"
         >
           <span>Directions</span>
@@ -2611,7 +2779,7 @@ class RecipeView {
       </div>
       `;
     }
-    #generateMarkupIngredient(ing) {
+    _generateMarkupIngredient(ing) {
         return `
       <li class="recipe__ingredient">
       <svg class="recipe__icon">
@@ -2625,24 +2793,43 @@ class RecipeView {
       </li>
       `;
     }
-    renderSpinner() {
-        const markup = `
-      <div class="spinner">
-        <svg>
-          <use href="${(0, _iconsSvgDefault.default)}#icon-loader"></use>
-        </svg>
-      </div>;`;
-        this.#clear();
-        this.#parentElement.insertAdjacentHTML("afterbegin", markup);
+    // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
+    // This is not a private method because we need to call it from the controller.js file.
+    addHandlerRender(handler) {
+        // We are using the hashchange event to listen for changes in the url hash. This is so that we can render the recipe when the user clicks on a recipe.
+        // We are using the load event to render the recipe when the page loads.
+        // REMEMBER: The 'addEventListener' method takes in two arguments. The first argument is the event type and the second argument is the event handler function.
+        [
+            "hashchange",
+            "load"
+        ].forEach((ev)=>window.addEventListener(ev, handler));
     }
-    #clear() {
-        this.#parentElement.innerHTML = "";
+    // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
+    // This is not a private method because we need to call it from the controller.js file.
+    addHandlerUpdateServings(handler) {
+        // We are using event delegation to add an event listener to the servings buttons
+        this._parentElement.addEventListener("click", function(e) {
+            // We are using the closest method to select the closest element with the class 'btn--update-servings' to the element that was clicked on
+            const btn = e.target.closest(".btn--update-servings");
+            console.log(btn);
+            // Guard clause to make sure that the btn variable is not null
+            if (!btn) return;
+            // We are storing the value of the data attribute 'update-to' in the newServings variable. We are using the + sign to convert the string value to a number
+            // const newServings = Number(btn.dataset.updateTo);
+            // const newServings = +btn.dataset.updateTo;
+            // Guard clause to make sure that the newServings variable is greater than 0
+            // if (newServings > 0) {
+            //   handler(newServings);
+            // }
+            const { updateTo } = btn.dataset;
+            if (+updateTo > 0) handler(+updateTo);
+        });
     }
 }
 // We need to export the class so we can use it in the controller.js file. This is because we are using the MVC architecture.
 exports.default = new RecipeView();
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","url:../../img/icons.svg":"loVOp","fractional":"3SU56"}],"loVOp":[function(require,module,exports) {
+},{"url:../../img/icons.svg":"loVOp","fractional":"3SU56","./View.js":"5cUXS","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"loVOp":[function(require,module,exports) {
 module.exports = require("9bcc84ee5d265e38").getBundleURL("hWUTQ") + "icons.dfd7a6db.svg" + "?" + Date.now();
 
 },{"9bcc84ee5d265e38":"lgJ39"}],"lgJ39":[function(require,module,exports) {
@@ -2933,6 +3120,192 @@ Fraction.primeFactors = function(n) {
 };
 module.exports.Fraction = Fraction;
 
-},{}]},["aD7Zm","aenu9"], "aenu9", "parcelRequire3a11")
+},{}],"5cUXS":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _iconsSvg = require("url:../../img/icons.svg"); // Parcel 2
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class View {
+    // This is a "private" property that will be inherited by all the child classes
+    // The _data property will store the data that we will pass in to the render method
+    // The _data property will be an empty object by default
+    _data;
+    render(data) {
+        // console.log(data); // debug
+        // Guard clause to make sure that the data is not an empty object
+        if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
+        // We are storing the data in the _data property
+        this._data = data;
+        console.log(this._data); // debug
+        const markup = this._generateMarkup();
+        this._clear();
+        this._parentElement.insertAdjacentHTML("afterbegin", markup);
+    }
+    renderSpinner() {
+        const markup = `
+      <div class="spinner">
+        <svg>
+          <use href="${(0, _iconsSvgDefault.default)}#icon-loader"></use>
+        </svg>
+      </div>;`;
+        this._clear();
+        this._parentElement.insertAdjacentHTML("afterbegin", markup);
+    }
+    // This method is used to render an error message to the DOM.
+    // The default error message is the one that we defined in the #errorMessage property.
+    renderError(message = this._errorMessage) {
+        const markup = `
+    <div class="error">
+      <div>
+        <svg>
+          <use href="${(0, _iconsSvgDefault.default)}#icon-alert-triangle"></use>
+        </svg>
+      </div>
+      <p>${message}</p>
+    </div>
+    `;
+        this._clear();
+        this._parentElement.insertAdjacentHTML("afterbegin", markup);
+    }
+    renderMessage(message = this._message) {
+        const markup = `
+    <div class="message">
+      <div>
+        <svg>
+          <use href="${(0, _iconsSvgDefault.default)}#icon-smile"></use>
+        </svg>
+      </div>
+      <p>${message}</p>
+    </div>
+    `;
+        this._clear();
+        this._parentElement.insertAdjacentHTML("afterbegin", markup);
+    }
+    _clear() {
+        // console.log(this._parentElement); // debug
+        this._parentElement.innerHTML = "";
+    }
+}
+exports.default = View;
+
+},{"url:../../img/icons.svg":"loVOp","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9OQAM":[function(require,module,exports) {
+// This file will contain all the code for the search view because this concerns only with the DOM
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+class SeachView {
+    // Remember the parent element will be unique to each view 
+    _parentEl = document.querySelector(".search");
+    // This method will return the value of the input field
+    getQuery() {
+        const query = this._parentEl.querySelector(".search__field").value;
+        this._clearInput();
+        return query;
+    }
+    // This method will clear the input field
+    _clearInput() {
+        this._parentEl.querySelector(".search__field").value = "";
+    }
+    // This method will add an event listener to the search button
+    addHandlerSearch(handler) {
+        this._parentEl.addEventListener("submit", function(e) {
+            e.preventDefault();
+            handler();
+        });
+    }
+}
+exports.default = new SeachView(); // This is a singleton instance of the class so we don't need to create an instance of the class in the controller.js file.  We can just import the class from the searchView.js file and use the methods directly.
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cSbZE":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _viewJs = require("./View.js");
+var _viewJsDefault = parcelHelpers.interopDefault(_viewJs);
+var _iconsSvg = require("url:../../img/icons.svg"); // Parcel 2
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class ResultsView extends (0, _viewJsDefault.default) {
+    _parentElement = document.querySelector(".results");
+    _errorMessage = "No recipes found for your query! Please try again.";
+    _message = "";
+    _generateMarkup() {
+        // console.log(this._data); // debug
+        // We are looping over the array of recipes and calling the _generateMarkupPreview method for each recipe
+        // We are then joining the array of strings into one big string
+        return this._data.map(this._generateMarkupPreview).join("");
+    }
+    // This method will return a string of HTML markup for each recipe
+    _generateMarkupPreview(result) {
+        return `
+            <li class="preview">
+            <a class="preview__link" href="#${result.id}">
+                <figure class="preview__fig">
+                <img src="${result.image}" alt="${result.title}" />
+                </figure>
+                <div class="preview__data">
+                <h4 class="preview__title">${result.title}</h4>
+                <p class="preview__publisher">${result.publisher}</p>
+                </div>
+            </a>
+            </li>
+        `;
+    }
+}
+// This is a singleton instance of the class so we don't need to create an instance of the class in the controller.js file.  
+// We can just import the class from the searchView.js file and use the methods directly.
+exports.default = new ResultsView();
+
+},{"./View.js":"5cUXS","url:../../img/icons.svg":"loVOp","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"6z7bi":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _viewJs = require("./View.js");
+var _viewJsDefault = parcelHelpers.interopDefault(_viewJs);
+var _iconsSvg = require("url:../../img/icons.svg"); // Parcel 2
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class PaginationView extends (0, _viewJsDefault.default) {
+    _parentElement = document.querySelector(".pagination");
+    addHandlerClick(handler) {
+        this._parentElement.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--inline"); // We are using the closest method to select the closest element with the class 'btn--inline' to the element that was clicked on
+            if (!btn) return; // Guard clause to make sure that the btn variable is not null
+            // const goToPage = Number(btn.dataset.goto); // We are storing the value of the data attribute 'goto' in the goToPage variable. We are using the + sign to convert the string value to a number
+            const goToPage = +btn.dataset.goto; // We are storing the value of the data attribute 'goto' in the goToPage variable. We are using the + sign to convert the string value to a number
+            // console.log(typeof goToPage);
+            handler(goToPage); // We are calling the controlPagination function from the controller.js file and passing in the goToPage variable as an argument
+        });
+    }
+    _generateMarkupButton(direction, page) {
+        return `
+        <button data-goto="${page}" class="btn--inline pagination__btn--${direction}">
+            ${direction === "prev" ? `<svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-left">
+            </use>
+            </svg>` : ""}
+
+            <span>Page ${page}</span>
+
+            ${direction === "next" ? `<svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-right">
+            </use>
+            </svg>` : ""}
+        </button>
+        `;
+    }
+    _generateMarkup() {
+        const curPage = this._data.page;
+        const numPages = Math.ceil(this._data.results.length / this._data.resultsPerPage);
+        // Page 1 and there are other pages
+        if (curPage === 1 && numPages > 1) return this._generateMarkupButton("next", curPage + 1);
+        // Last page
+        if (curPage === numPages && numPages > 1) return this._generateMarkupButton("prev", curPage - 1);
+        // Other page
+        if (curPage < numPages) return `
+            ${this._generateMarkupButton("prev", curPage - 1)}
+            ${this._generateMarkupButton("next", curPage + 1)}`;
+        // Page 1 and there are no other pages
+        return ""; // We are returning an empty string if there is only one page of results so that nothing is rendered to the DOM 
+    }
+}
+exports.default = new PaginationView(); // We are exporting an instance of the PaginationView class
+
+},{"./View.js":"5cUXS","url:../../img/icons.svg":"loVOp","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["aD7Zm","aenu9"], "aenu9", "parcelRequire3a11")
 
 //# sourceMappingURL=index.e37f48ea.js.map
