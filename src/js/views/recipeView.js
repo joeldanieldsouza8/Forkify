@@ -64,12 +64,16 @@ class RecipeView extends View {
           </div>
         </div>
 
-        <div class="recipe__user-generated">
-          
+        <div class="recipe__user-generated ${this._data.key ? '' : 'hidden'}">
+          <svg>
+            <use href="${icons}#icon-user"></use>
+          </svg>
         </div>
-        <button class="btn--round">
+        <button class="btn--round btn--bookmark">
           <svg class="">
-            <use href="${icons}#icon-bookmark-fill"></use>
+            <use href="${icons}#icon-bookmark${
+      this._data.bookmarked ? '-fill' : ''
+    }"></use>
           </svg>
         </button>
       </div>
@@ -123,8 +127,8 @@ class RecipeView extends View {
       `;
   }
 
-  // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
-  // This is not a private method because we need to call it from the controller.js file.
+  /// The below methods are used to subscribe to the publisher. We are using the publisher-subscriber pattern. These are event delegation methods.
+
   addHandlerRender(handler) {
     // We are using the hashchange event to listen for changes in the url hash. This is so that we can render the recipe when the user clicks on a recipe.
     // We are using the load event to render the recipe when the page loads.
@@ -132,14 +136,12 @@ class RecipeView extends View {
     ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
   }
 
-  // This method is used to subscribe to the publisher. We are using the publisher-subscriber pattern.
-  // This is not a private method because we need to call it from the controller.js file.
   addHandlerUpdateServings(handler) {
     // We are using event delegation to add an event listener to the servings buttons
     this._parentElement.addEventListener('click', function (e) {
       // We are using the closest method to select the closest element with the class 'btn--update-servings' to the element that was clicked on
       const btn = e.target.closest('.btn--update-servings');
-      console.log(btn);
+      // console.log(btn);
 
       // Guard clause to make sure that the btn variable is not null
       if (!btn) return;
@@ -158,6 +160,20 @@ class RecipeView extends View {
       if (+updateTo > 0) {
         handler(+updateTo);
       }
+    });
+  }
+
+  addHandlerAddBookmark(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      // We are using the closest method to select the closest element with the class 'btn--bookmark' to the element that was clicked on
+      // This is because the bookmark button is not present on the page when the page loads. It is only present when the recipe is rendered.
+      const btn = e.target.closest('.btn--bookmark');
+      // console.log(btn);
+
+      // Guard clause to make sure that the btn variable is not null
+      if (!btn) return;
+
+      handler();
     });
   }
 }
